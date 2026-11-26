@@ -9,8 +9,8 @@
 - Repositorio público: [Luis3070/TEEPARCIAL3](https://github.com/Luis3070/TEEPARCIAL3).
 - README para el profesor: [README.md](README.md).
 - Aplicación: pendiente. URL esperada: `https://luis3070.github.io/TEEPARCIAL3/` (responde HTTP 404 al verificar; no compartir como enlace funcional).
-- `main` publicado: `dcf0ef80ffa2ba9a8aeeda61019393c660092cf0` (`Release TEEPARCIAL3 v1.0`).
-- GitHub Actions: [Deploy GitHub Pages, ejecución 45763328042](https://github.com/Luis3070/TEEPARCIAL3/actions/runs/45763328042), fallida en `Setup Pages`. Instalación, 19 pruebas y build de producción sí pasaron. El artefacto no se subió y el despliegue quedó omitido.
+- Commit del paquete TEEPARCIAL3 v1.0: `dcf0ef80ffa2ba9a8aeeda61019393c660092cf0` (las actualizaciones posteriores documentan el estado de publicación).
+- GitHub Actions: [Deploy GitHub Pages, ejecución 45763887404](https://github.com/Luis3070/TEEPARCIAL3/actions/runs/45763887404), fallida en `Setup Pages`. Instalación, 19 pruebas y build de producción sí pasaron. El artefacto no se subió y el despliegue quedó omitido.
 
 ## Acción pendiente para activar Pages
 
