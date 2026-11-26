@@ -6,9 +6,11 @@
 
 ## Acceso a la plataforma
 
-**Aplicación web:** pendiente de publicación y verificación de GitHub Pages. No se proporciona una URL hasta comprobar que el sitio HTTPS está activo y accesible sin autenticación.
+**Repositorio público:** [github.com/Luis3070/TEEPARCIAL3](https://github.com/Luis3070/TEEPARCIAL3). El código y los entregables están publicados.
 
-Una vez publicado, el sistema se abrirá en un navegador convencional desde computador, tableta o teléfono, sin instalación. La aplicación funciona en el navegador y no requiere FastAPI, base de datos externa ni credenciales.
+**Aplicación web:** GitHub Pages aún no está activo. La primera ejecución de Actions pasó las pruebas y compiló el sitio, pero falló al inicializar Pages. Antes de compartir un enlace de la aplicación, en el repositorio abre **Settings → Pages → Build and deployment** y selecciona **GitHub Actions**. La URL prevista es `https://luis3070.github.io/TEEPARCIAL3/`; se añadirá como enlace directo cuando responda por HTTPS sin autenticación.
+
+Una vez activado Pages, el sistema se abrirá en un navegador convencional desde computador, tableta o teléfono, sin instalación. La aplicación funciona en el navegador y no requiere FastAPI, base de datos externa ni credenciales.
 
 ## ¿Qué es?
 
