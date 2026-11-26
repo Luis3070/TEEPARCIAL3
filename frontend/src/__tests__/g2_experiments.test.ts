@@ -1,0 +1,40 @@
+import {describe,it,expect} from 'vitest';
+import {mkdirSync,writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {applyIntervention,assess,computeKpis,forecast,healthIndex,intervalFor,simulate,toObservations,validateForecasts,operationalState} from '../engine';
+import {fmeca,healthWeights,tasks,variables} from '../domain';
+const out=resolve(process.cwd(),'../REVISION_G2');mkdirSync(out,{recursive:true});
+const csv=(rows:Record<string,unknown>[])=>{if(!rows.length)return '';const cols=[...new Set(rows.flatMap(r=>Object.keys(r)))];const q=(x:unknown)=>{const s=x==null?'':String(x);return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s};return [cols.map(q).join(','),...rows.map(r=>cols.map(c=>q(r[c])).join(','))].join('\n')};
+const mean=(a:number[])=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+const sd=(a:number[])=>a.length?Math.sqrt(a.reduce((s,x)=>s+(x-mean(a)!)**2,0)/a.length):null;
+const qtile=(a:number[],q:number)=>{if(!a.length)return null;const x=[...a].sort((p,n)=>p-n),k=(x.length-1)*q,i=Math.floor(k);return x[i]+(x[Math.min(i+1,x.length-1)]-x[i])*(k-i)};
+let modelComparisonRows:Record<string,unknown>[]=[];
+describe('validación causal G2 y P-A',()=>{
+ it('genera métricas, predicciones individuales y cruces para 150 trayectorias',()=>{
+  const scenarios=['NORMAL','COOLING_DRIFT','OIL_DROP','BRAKE_WEAR','COMBINED'] as const;
+  const {predictions,metrics,modelPredictions,modelMetrics}=validateForecasts(scenarios,Array.from({length:30},(_,i)=>i+1),180);
+  writeFileSync(resolve(out,'01_METRICAS_PRONOSTICO.csv'),csv(metrics as unknown as Record<string,unknown>[]));
+  writeFileSync(resolve(out,'01_PREDICCIONES_TTS.csv'),csv(predictions as unknown as Record<string,unknown>[]));
+  writeFileSync(resolve(out,'07_COMPARACION_OLS_EXPONENCIAL.csv'),csv(modelMetrics as unknown as Record<string,unknown>[]));
+  writeFileSync(resolve(out,'07_PREDICCIONES_OLS_EXPONENCIAL.csv'),csv(modelPredictions as unknown as Record<string,unknown>[]));
+  modelComparisonRows=modelMetrics.map(m=>({categoria:'P1.2_COMPARACION_MODELOS',...m}));
+  const intervals:Record<string,unknown>[]=[],p5:number[]=[],p95:number[]=[];
+  for(const scenario of scenarios)for(let seed=1;seed<=30;seed++){const pts=simulate(seed,scenario,180);for(const v of variables){const r=intervalFor(pts,scenario,seed,v.id);intervals.push({tipo:'corrida',...r});if(r.deltaPA!==null)p5.push(r.deltaPA)}}
+  const keys=[...new Set(intervals.map(r=>String(r.scenario)+'|'+String(r.variableId)))];
+  for(const key of keys){const [scenario,variableId]=key.split('|'),g=intervals.filter(r=>r.scenario===scenario&&r.variableId===variableId),vals=g.map(r=>r.deltaPA).filter((x):x is number=>typeof x==='number');intervals.push({tipo:'resumen',scenario,variableId,n_observado:vals.length,n_censurado:g.filter(r=>r.censored).length,min:vals.length?Math.min(...vals):null,p05:qtile(vals,.05),mediana:qtile(vals,.5),p95:qtile(vals,.95),max:vals.length?Math.max(...vals):null});}
+  writeFileSync(resolve(out,'02_INTERVALOS_PA_PF.csv'),csv(intervals));
+  const fm=variables.map(v=>{const f=fmeca.find(x=>x.variables.includes(v.id)),task=tasks.find(x=>x.id===v.taskId);return {subsistema:v.subsystem,modo:f?.failureMode??'',efecto:f?.effect??'',severidad:f?.severity??v.severity,ocurrencia:f?.occurrence??v.occurrence,detectabilidad:f?.detectability??v.detectability,RPN:f?.rpn??v.severity*v.occurrence*v.detectability,peso_HI:healthWeights[v.id]??0,justificacion:f?.rationale??v.reason,umbral_alerta:v.alert,umbral_alarma:v.alarm,tarea_RCM:task?.title??'',recurso:task?.resources.join('; ')??'',plazo_h:task?.leadTimeHours??'',fuente:v.sourceId,validacion:f?.validation??'SUPUESTO PROVISIONAL'}});writeFileSync(resolve(out,'04_FMECA_RCM_PESOS.csv'),csv(fm));
+  expect(predictions.length).toBeGreaterThan(0);expect(metrics).toHaveLength(30);expect(modelMetrics).toHaveLength(60);expect(modelPredictions).toHaveLength(predictions.length*2);expect(modelMetrics.every(m=>m.candidates===modelMetrics.find(n=>n.scenario===m.scenario&&n.variableId===m.variableId&&n.model!=='OLS')?.candidates)).toBe(true);expect(intervals.filter(r=>r.tipo==='corrida')).toHaveLength(900);expect(variables.every(v=>v.functional===null)).toBe(true);
+ },120000);
+ it('diagnostica HI nominal, compara políticas pareadas y cuantifica estabilidad térmica',()=>{
+  const scenarios=['NORMAL','COOLING_DRIFT','OIL_DROP','BRAKE_WEAR','COMBINED'] as const, rows:Record<string,unknown>[]=[];
+  const nominal=Array.from({length:30},(_,i)=>simulate(i+1,'NORMAL',180));
+  for(const v of variables.filter(x=>x.includedInHealth)){const hs=nominal.flatMap(p=>p.map(x=>assess(x.values[v.id],v.id).health??NaN).filter(Number.isFinite)),last=nominal.map(p=>assess(p.at(-1)!.values[v.id],v.id).health??NaN).filter(Number.isFinite);rows.push({categoria:'HI_NOMINAL_VARIABLE',variableId:v.id,RPN:v.severity*v.occurrence*v.detectability,peso:healthWeights[v.id],salud_media:mean(hs),salud_final_media:mean(last),desviacion_estandar:sd(hs),contribucion_media_reduccion_HI:healthWeights[v.id]!*mean(hs.map(x=>100-x))!});}
+  for(const scenario of scenarios){const records=Array.from({length:30},(_,i)=>{const p=simulate(i+1,scenario,180),k=computeKpis(p),h=healthIndex(p.at(-1)!.values);return {categoria:'ESCENARIO',scenario,seed:i+1,HI_final:h.value,estado_final:operationalState(variables.map(v=>assess(p.at(-1)!.values[v.id],v.id))),disponibilidad:k.availability,detencion_h:k.downtimeHours,costo_COP:k.simulatedCostCop}});for(const r of records)rows.push(r);}
+  const paired:Record<string,unknown>[]=[];
+  for(let seed=1;seed<=30;seed++){const p=simulate(seed,'COOLING_DRIFT',180),intr=intervalFor(p,'COOLING_DRIFT',seed,'coolant_temp');if(intr.tA===null){paired.push({categoria:'CBM_PAREADO',seed,censurado:true});continue}const reactive=applyIntervention(p,'coolant_temp',intr.tA,2,.85,250000),reactK=computeKpis(reactive.points,[reactive.event]);let start=intr.tP??intr.tA; if(intr.tP!==null){const past=toObservations(p,'COOLING_DRIFT').filter(o=>o.t<=intr.tP!);const f=forecast(past,'coolant_temp');if(f.etaAlarmHours!==null)start=Math.max(intr.tP,Math.floor(intr.tP+f.etaAlarmHours-4));}const cbm=applyIntervention(p,'coolant_temp',start,2,.85,250000),cbmK=computeKpis(cbm.points,[cbm.event]);paired.push({categoria:'POLITICA_PAREADA',seed,tP:intr.tP,tA:intr.tA,TTS_OLS_h:intr.tP===null?null:forecast(toObservations(p,'COOLING_DRIFT').filter(o=>o.t<=intr.tP!),'coolant_temp').etaAlarmHours,lead_logistico_h:4,duracion_h:2,politica:'REACTIVA',inicio_h:intr.tA,alarma_alcanzada:1,indisponibilidad_h:reactK.downtimeHours,disponibilidad:reactK.availability,costo_COP:reactK.simulatedCostCop,intervenciones:1,margen_intervencion_h:-2});paired.push({categoria:'POLITICA_PAREADA',seed,tP:intr.tP,tA:intr.tA,TTS_OLS_h:intr.tP===null?null:forecast(toObservations(p,'COOLING_DRIFT').filter(o=>o.t<=intr.tP!),'coolant_temp').etaAlarmHours,lead_logistico_h:4,duracion_h:2,politica:'CBM_TTS',inicio_h:start,alarma_alcanzada:cbm.points.some(x=>x.t>=start&&assess(x.values.coolant_temp,'coolant_temp').state==='ALARMA / DETENCIÓN')?1:0,indisponibilidad_h:cbmK.downtimeHours,disponibilidad:cbmK.availability,costo_COP:cbmK.simulatedCostCop,intervenciones:1,margen_intervencion_h:intr.tA-start-2});}
+  const exo=simulate(1,'COOLING_DRIFT',180), thermal:Record<string,unknown>[]=[];for(const step of [0.25,5/60,1/60]){let temp=84,cross:number|null=null;const cth=15,ua0=1.2;for(const p of exo){const d=p.truth.coolingDegradation,ua=ua0*(1-d),q=1.2*(85-p.ambient)+p.load*6,sub=Math.round(1/step);for(let j=0;j<sub;j++){temp+=step*(q-ua*(temp-p.ambient))/cth;if(cross===null&&temp>=102)cross=p.t+j*step+step;}}thermal.push({categoria:'ESTABILIDAD_TERMICA',dt_h:step,dt_min:step*60,ratio_max:ua0*step/cth,temperatura_final_C:temp,primer_cruce_102C_h:cross});}
+  rows.push(...paired,...thermal,...modelComparisonRows);writeFileSync(resolve(out,'05_RESULTADOS_EXPERIMENTALES.csv'),csv(rows));expect(nominal).toHaveLength(30);expect(thermal.every(x=>Number(x.ratio_max)<2)).toBe(true);expect(paired.filter(x=>x.politica==='CBM_TTS')).toHaveLength(paired.filter(x=>x.politica==='REACTIVA').length);
+ },120000);
+});
+

@@ -1,0 +1,14 @@
+criterio,peso,requerimiento,evidencia,prueba asociada,estado,limitaciones
+"Coherencia FMECA RCM y curva P-F",20%,"Trazabilidad modo efecto criticidad variable P-F tarea OT","frontend/src/domain.ts; aplicación pestañas FMECA y OT; ENTREGA_FINAL/FUENTES_Y_SUPUESTOS.md","UI y 19 pruebas; 150 corridas reproducibles","Parcial","FMECA reconstruido; curva P-A se calcula por trayectorias; no había FMECA tabular/RCM por bus en archivos revisados"
+"Variables y umbrales",20%,"Entre 4 y 6 variables, métodos, frecuencia, unidad, fuente y estado","frontend/src/domain.ts; pestaña Datos; ENTREGA_FINAL/FUENTES_Y_SUPUESTOS.md","6 variables; importación CSV/XLSX manual","Parcial","Seis variables; varias bandas son supuestos, falta manual VIN y validación OEM"
+"Índice de salud y semáforo",10%,"HI 0–100 con pesos RPN y estado operacional independiente","frontend/src/engine.ts; pestaña Estado","Pruebas de umbral/HI; escenario combinado","Parcial","Pesos S×O×D se basan en juicio ordinal preliminar"
+"Tendencia y tiempo a umbral",15%,"Pronóstico causal y validación TTS y cruce P-A","frontend/src/engine.ts; pestaña Tendencias","Prueba mínimo de muestras; 150 corridas","Parcial","Regresión lineal simple; tF no definido; P-A simulado censurado si no cruza; validación sintética, no externa"
+"Alerta a acción",15%,"Vínculo FMECA-RCM, prioridad, recursos, plazo y OT sugerida","frontend/src/domain.ts; localStorage; pestaña Alertas y órdenes","Flujo en navegador, creación/cambio de estado y persistencia","Parcial","OT no se sincroniza con CMMS; acciones requieren validación humana"
+"Indicadores y trazabilidad de datos",10%,"Disponibilidad, MTBF, MTTR, costos, objetivos y origen de datos","engine.ts; pestañas Indicadores y Datos","KPI por 150 ejecuciones; CSV/XLSX","Parcial","KPI reflejan simulación/coeficientes supuestos, no historial financiero u operativo real"
+"Calidad técnica y usabilidad",5%,"Build, pruebas, arranque y flujo navegable","frontend; scripts; evidence","Build, 19 pruebas, smoke manual e importación CSV/XLSX; E2E automatizado pendiente","Parcial","Flujo manual validado; tamaño JS de producción >500 kB"
+"Sustentación",5%,"Demostración y defensa de fórmulas, fuentes, supuestos y límites","ENTREGA_FINAL/GUIA_SUSTENTACION.md","Guion de 7 min; secuencia probada en navegador","Parcial","El equipo debe revisar/ensayar el guion y confirmar umbrales con docente/OEM"
+
+
+
+
+

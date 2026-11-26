@@ -1,0 +1,7 @@
+t,variableId,value,unit,dataOrigin,scenarioId,note
+0,coolant_temp,85,°C,SIMULATED,DEMO,Fila de ejemplo
+0,oil_pressure,3.6,bar,SIMULATED,DEMO,Fila de ejemplo
+0,brake_pad,12,mm,SIMULATED,DEMO,Fila de ejemplo
+0,tire_pressure,100,psi,SIMULATED,DEMO,Fila de ejemplo
+0,fuel_consumption,41,L/100 km,SIMULATED,DEMO,Fila de ejemplo
+0,battery_voltage,25,V,SIMULATED,DEMO,Fila de ejemplo
